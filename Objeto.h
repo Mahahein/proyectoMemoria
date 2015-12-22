@@ -16,8 +16,8 @@ using namespace std;
 
 class Objeto {
 public:
-    //vector<T> valores;
-    MSvector* distancias;
+    //vector<int> pivotesAlojados;
+    double* distancias;
     double distanciaAcumulada;
     double distanciaACentro;
     int id;
@@ -25,15 +25,20 @@ public:
     int pos;
     bool esPivote;
     int posPiv;
-    int largoMax;
+    int dimension;
+    int tipo;
+    int capDistancias;
+    int sizeDistancias;
     Objeto();
     Objeto(const Objeto& orig);
-    Objeto(int peso);
+    Objeto(int cantPivs, int dim);
     virtual ~Objeto();
     virtual void poneValor( double val);
     void poneDistancia(double d);
     void aumentaAcumulado(double k);
+    void eliminaDistancia(int pos);
     virtual double metrica(Objeto* ob);
+    virtual void eliminaValores();
     //virtual double metrica(Vector* ob);
     //virtual double metrica(String* ob);
     virtual string getClass();

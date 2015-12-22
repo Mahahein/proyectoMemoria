@@ -18,6 +18,7 @@ public:
     int pos;
     int posMasLejano;
     int numCluster;
+    //int cantVecinos;
     long posArch;
     vector<Objeto*> cercanos;
     Pivote();

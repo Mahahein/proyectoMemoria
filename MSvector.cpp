@@ -18,7 +18,7 @@ MSvector::MSvector( const MSvector& orig ){
 
 MSvector::~MSvector(){
 	if(arr)
-		free(arr);
+		delete[] arr;
 }
 
 void MSvector::putValue( double val ){
@@ -28,7 +28,7 @@ void MSvector::putValue( double val ){
 	if( this->size == 0 ){
 		this->size = 1;
 		this->capacity = 1;
-		this->arr = (double*)malloc(sizeof(double)*capacity);
+		this->arr = (new double[capacity]);//(double*)malloc(sizeof(double)*capacity);
 		this->arr[0] = val;
 		return;
 	}
@@ -37,13 +37,13 @@ void MSvector::putValue( double val ){
 	}
 	else{
 		this->capacity = this->size*2;
-		arr2 = (double*)malloc( sizeof(double) * capacity );
+		arr2 = (new double[capacity]); //= (double*)malloc( sizeof(double) * capacity );
 
 		if( arr2 != NULL){
 			for( int i = 0; i < this->size; i++){
 				arr2[i] = arr[i];
 			}
-			free(this->arr);
+			delete[] this->arr;
 			this->arr = arr2;
 			this->arr[size] = val;
 		}
@@ -63,6 +63,7 @@ void MSvector::deleteValue( int pos ){
 		for( int i = pos; i < (this->size-1); i++){
 			this->arr[i] = this->arr[i+1];
 		}
+		this->arr[this->size-1] = -1; 
 		this->size--;
 	}
 }

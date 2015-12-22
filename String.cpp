@@ -6,6 +6,7 @@
 #include <string>
 #include <algorithm>
 #include <float.h>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -15,23 +16,39 @@ String::String(){
     comparando = 0;
     pos = 0;
     posPiv = -1;
-    distancias = new MSvector();
+    distancias = NULL;
+    valores = NULL;
+    tipo = 2;
+    sizeDistancias = 0;
+    capDistancias = 0;
 };
+
+String::String(int cantPivs, int dim) : Objeto(cantPivs, dim){
+	distanciaAcumulada = 0;
+    esPivote = false;
+    comparando = 0;
+    pos = 0;
+    posPiv = -1;
+    tipo = 2;
+    valores = (new char[dim]);
+}
 
 String::String(const String& orig){
 
 }
 
 String::~String(){
-	delete valores;
+	if(valores)
+		delete[] valores;
+	//delete distancias;
 };
 
 double String::metrica( Objeto* otro ){
 
-	if( this->getClass() != otro->getClass() ) return - DBL_MAX;
+	if( this->tipo != otro->tipo ) return - DBL_MAX;
 
 	int i, j;
-	vector<int> T(((String*)otro)->tamReal+1);
+	int *T(new int[((String*)otro)->tamReal+1]);
 	for( i = 0; i <= ((String*)otro)->tamReal; i++ ) T[i] = i;
 
 	for( i = 0; i < this->tamReal; i++ ){
@@ -46,7 +63,12 @@ double String::metrica( Objeto* otro ){
 			corner = upper;
 		}
 	}
-	return (double)T[((String*)otro)->tamReal];
+	double val = (double)T[((String*)otro)->tamReal];
+	//vector<int>().swap(T);
+	//T.resize(0);
+	//T.shrink_to_fit();
+	delete[] T;
+	return val;
 };
 
 string String::getClass(){
@@ -59,4 +81,9 @@ void String::setTamReal( int tam ){
 
 void String::poneValor(double val){
 
+}
+
+void String::eliminaValores(){
+	if(valores)
+		delete valores;
 }

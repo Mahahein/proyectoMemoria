@@ -10,6 +10,7 @@
 #include <string>
 #include <string.h>
 #include <fstream>
+#include <time.h>
 #include "Cargador.h"
 #include "Lector.h"
 #include "Objeto.h"
@@ -42,31 +43,35 @@ int main(int argc, char** argv) {
     
     int dimension;
     ofstream archivoSalida;
-    vector<Objeto*> resp;
+    //vector<Objeto*> resp;
     vector<Objeto*> objetos;
     bool respuestaEliminacion;
     string nombreArchivo;
     int opc = 1;
+    //double radios[4] = {255.0, 500.0, 760.0, 1010.0};
+
     while( opc != 0 ){
         
         if( opc == 1){
             int opc1 = 1;
             if( opc1 == 1 ){
-                nombreArchivo = "bdNora.dat";
+                nombreArchivo = "bdNoraFixed.txt";
                 s = new Cargador();
                 cout << "porcentaje,lecturas,escrituras,calcMetrica,movCabezal" << endl;
                 tipo = s->leer( nombreArchivo, 1 );
                 dimension = s->dimension;
-                c = new Consultor();
+                /*c = new Consultor();
                 c->pivotes.swap(s->pivotesProvisorios);
                 c->clusters.swap(s->pivotesEnMemoria);
                 c->saco.swap(s->bolsa);
                 c->dimension = dimension;
                 c->tamCluster = s->tamCluster;
                 c->totalObjs = s->totalObjs;
-                c->tipo = tipo;
+                c->tipo = tipo;*/
+                delete s;
                 l->dimension = dimension;
                 l->tipo = tipo;
+                opc=0;
             }
             else if( opc1 == 2 ){
                 nombreArchivo = submenuHacerConsultaArchivoEntrada();
@@ -97,7 +102,7 @@ int main(int argc, char** argv) {
         }
         else if( opc == 2 ){
             //Consultor* c = new Consultor();
-            nombreArchivo = "90percent100mil.txt";
+            nombreArchivo = "bdNoraFixed_90p.txt";
             s = new Cargador();
             cout << "porcentaje,lecturas,escrituras,calcMetrica,movCabezal" << endl;
             tipo = s->leer( nombreArchivo, 1 );
@@ -110,38 +115,65 @@ int main(int argc, char** argv) {
             c->tamCluster = s->tamCluster;
             c->totalObjs = s->totalObjs;
             c->tipo = tipo;
+            c->cantPags = s->cantPags;
             l->dimension = dimension;
             l->tipo = tipo;
             int opc2 = 2;
             string entrada, salida;
+            long resp;
             if( opc2 == 1 ){
                 salida = submenuHacerConsultaArchivoSalida();
                 Objeto* o = l->leerDesdeEE();
                 c->resetContadores();
-                resp = c->consultarBusquedaRango( o, o->distanciaAcumulada );
+                //resp = c->consultarBusquedaRango( o, o->distanciaAcumulada );
                 archivoSalida.open( salida.c_str(), ios_base::out );
-                archivoSalida << "la respuesta arrojó " << resp.size() << " objetos de respuesta" << endl;
-                escribeRespuesta( resp, archivoSalida );
+                //archivoSalida << "la respuesta arrojó " << resp.size() << " objetos de respuesta" << endl;
+                //escribeRespuesta( resp, archivoSalida );
                 archivoSalida.close();
             }
             else if( opc2 == 2 ){
-                entrada = "query10percent100mil.txt";
-                salida = "salidaExperimentoBusquedaDouble100mil.txt";
+                entrada = "bdNoraFixed_10p.txt";
+                //entrada = "vectors-20_10p.dat";
+                salida = "salidaExperimentoBusquedaENGPiv.txt";
                 archivoSalida.open( salida.c_str(), ios_base::out );
-                archivoSalida << "radio,lecturas,escrituras,calcMetrica,movCabezal" << endl;
+                archivoSalida << "radio,lecturas,escrituras,calcMetrica,movCabezal,tiempo" << endl;
                 objetos = l->leerDesdeArchivo( entrada );
                 cout << "leyo bien... buscando" << endl;
-                double radios[4] = {0.01, 0.02, 0.03, 0.05};
-                for( int j = 0; j < 4; j++){
+                unsigned long long totLec, totEsc, totMet, totMov;
+                double totTim;
+                long k;
+                time_t ini, fin;
+                //double radios[3] = {0.051768, 0.082514, 0.131163};
+                //double radios[3] = {0.12, 0.285, 0.53};
+                double radios[4] = {255.0, 500.0, 760.0, 1010.0};//, 3.0, 4.0};
+                for( int j = 0; j < 3; j++){
+                    k=0;
+                    totLec = 0;
+                    totEsc = 0;
+                    totMet = 0;
+                    totMov = 0;
+                    totTim = 0;
                     for( vector<Objeto*>::iterator i = objetos.begin(); i != objetos.end(); ++i ){
                         //(*i)->distanciaAcumulada = ;
                         c->resetContadores();
+                        ini = time(0);
                         resp = c->consultarBusquedaRango( (*i), radios[j]);
-                        archivoSalida << radios[j] << "," << c->lecturas <<"," << c->escrituras << "," << c->calcMetrica <<"," << c->movCabezal << endl;
+                        fin = time(0);
+                        totTim += (double) (fin - ini);
+                        totLec += c->lecturas;
+                        totEsc += c->escrituras;
+                        totMet += c->calcMetrica;
+                        totMov += c->movCabezal;
+                        k++;
+                        //for( vector<Objeto*>::iterator v = resp.begin(); v != resp.end(); ++v )
+                        //    delete *v;
+                        //vector<Objeto*>().swap(resp);
+                        //delete[] resp;
                     }
+                    archivoSalida << radios[j] << "," << ((double)totLec)/k <<"," << ((double)totEsc)/k << "," << ((double)totMet)/k <<"," << ((double)totMov)/k << "," << totTim/k << endl;
                 }
                 archivoSalida.close();
-                
+                opc=0;
             }
         }
         else if( opc == 3 ){
@@ -187,7 +219,7 @@ int main(int argc, char** argv) {
                 }
             }
         }
-        opc=0;
+        
         //opc = menuPrincipal();
     }
     
@@ -291,7 +323,7 @@ void escribeRespuesta( vector<Objeto*> resp, ofstream& archivo ){
     int i, j;
     if(tipo == 1){
         for( i = 0; i < resp.size(); i++ ){
-            for( j = 0; j < ((Vector*)resp[i])->valores.size(); j++)
+            for( j = 0; j < ((Vector*)resp[i])->sizeValores; j++)
                 archivo << ((Vector*)resp[i])->valores[j] << " ";
             archivo << endl;
         }

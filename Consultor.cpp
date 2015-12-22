@@ -42,7 +42,7 @@ Consultor::~Consultor(){
 	fclose(this->archivo);
 };
 
-vector<Objeto*> Consultor::consultarBusquedaRango(Objeto* ob, double r){
+long Consultor::consultarBusquedaRango(Objeto* ob, double r){
 	vector<Objeto*> cercanos;
 	vector<Pivote*> candidatos;
 	vector<Pivote*>::iterator l;
@@ -50,66 +50,88 @@ vector<Objeto*> Consultor::consultarBusquedaRango(Objeto* ob, double r){
 	int i, j, k;
 	double dist;
 	bool esta;
-
+	long respuesta = 0;
+	//int contTot = 0;
 	//BUSCANDO EN LOS CLUSTER
 	//cout << "Buscando clusters con posibles vecinos" << endl;
+	double *distanciaAClusters(new double[clusters.size()]);
+	k=0;
 	for( l = clusters.begin(); l != clusters.end(); ++l ){
 		calcMetrica++;
-		if( ob->metrica((*l)->centro) <= (r + (*l)->radio )){
+		dist = ob->metrica((*l)->centro);
+		if( dist <= (r + (*l)->radio )){
 			candidatos.push_back((*l));
+			distanciaAClusters[k]= dist;
+			k++;
 		}
 	}
 
 	//cout << "sacando los posibles vecinos de los clusters" << endl;
+	vector<Objeto*> objetosBloque;
+	k=0;
 	if(!candidatos.empty()){
 
 		for( l = candidatos.begin(); l != candidatos.end(); ++l ){
 
-			vector<Objeto*> objetosBloque = extraerCluster( (*l)->numCluster, (*l)->posArch );
+			objetosBloque = extraerCluster( (*l)->numCluster, (*l)->posArch );
 			lecturas++;
 
 			for( m = objetosBloque.begin(); m != objetosBloque.end(); ++m ){
-				calcMetrica++;
-				if( ob->metrica((*m)) <= r ){
-					cercanos.push_back((*m));
+				if( fabs( distanciaAClusters[k] - (*m)->distanciaACentro ) <= r ){
+					calcMetrica++;
+					if( ob->metrica((*m)) <= r ){
+						respuesta += 1;
+					}
 				}
-				else{
-					delete (*m);
-				}
+				/**/
 			}
-			/*for( m = objetosBloque.begin(); m != objetosBloque.end(); ++m ){
-				delete (*m);
-			}*/
-			objetosBloque.clear();
+			for( m = objetosBloque.begin(); m != objetosBloque.end(); ++m ){
+				delete *m;
+			}
+			k++;
+			vector<Objeto*>().swap(objetosBloque);
+			objetosBloque.resize(0);
+			objetosBloque.shrink_to_fit();
+			
 		}
 	}
 
+	vector<Pivote*>().swap(candidatos);
+	candidatos.resize(0);
+	candidatos.shrink_to_fit();
 	//cout << "buscando en los pivotes en ram, calculando distancias a los pivotes" << endl;
 
 
-	vector<double> distPivs;
+	double *distPivs(new double[pivotes.size()]);
+	i=0;
 	for( l = pivotes.begin(); l != pivotes.end(); ++l ){
 		calcMetrica++;
-		distPivs.push_back( ob->metrica((*l)->centro) );
+		distPivs[i] = ob->metrica((*l)->centro);
+		i++;
 	}
 
 	//ELIGIENDO POR DESIGUALDAD TRIANGULAR
 	//cout << "buscando por distancia triangular y luego directo a los posibles vecinos" << endl;
+	bool sobrevive;
 	for( m = saco.begin(); m != saco.end(); ++m ){
-		for( j = 0; j < (*m)->distancias->getSize(); j++ ){
-			if( fabs( distPivs[j] - (*m)->distancias->getValueAt(j) ) <= r ){ // DESIGUALDAD TRIANGULAR
-				calcMetrica++;
-				if( ob->metrica((*m)) <= r){
-					cercanos.push_back( (*m) );
-					break;
-				}
-
+		sobrevive = true;
+		for( j = 0; j < (*m)->sizeDistancias; j++ ){
+			if( fabs( distPivs[j] - (*m)->distancias[j] ) > r ){ // DESIGUALDAD TRIANGULAR
+				sobrevive = false;
+				break;
+			}
+		}
+		if( sobrevive ){
+			calcMetrica++;
+			if( ob->metrica((*m)) <= r){
+				respuesta += 1;
 			}
 		}
 	}
+	delete[] distPivs;
 	//cout << "total encontrados " << cercanos.size() << endl;
 	
-	return cercanos;
+	return respuesta;
 
 };
 
@@ -122,128 +144,98 @@ bool Consultor::eliminarObjeto(Objeto* ob){
 	vector<Objeto*>::iterator m;
 
 	vector<Objeto*> bloque;
+	vector<Pivote*> candidatos;
 	bloque.resize(0);
 	bloque.shrink_to_fit();
 
 	double dist;
-	int j;
+	int j, o;
 	//Buscando en RAM
-	//cout << "Buscando el objeto en ram: ";
-	if(tipo == 2) printf("%s", ((String*)ob)->valores);
-	cout << endl;
+	double *distPivs(new double[pivotes.size()]);
+	j=0;
+	for( k = pivotes.begin(); k != pivotes.end(); ++k ){
+		calcMetrica++;
+		distPivs[j] = ob->metrica((*k)->centro);
+		j++;
+	}
 
 	for( i = saco.begin(); i != saco.end() && !eliminado; ++i ){
-		//if(tipo == 2) printf("comparando con %s\n", ((String*)(*i))->valores);
-		dist = ob->metrica( (*i) );
-		calcMetrica++;
-		if( dist == 0 ){
-			//cout << "encontrado en RAM" << endl;
-			if( (*i)->esPivote ){
-				//cout <<"es pivote" << endl;
-				eliminaPivote( (*i)->id );
-				elegirPivote();
+		for(j = 0; j < (*m)->sizeDistancias; j++){
+			if( fabs( distPivs[j] - (*i)->distancias[j] ) < 0.0001 ){
+				calcMetrica++;
+				if(ob->metrica(*i) <= 0.00001){
+					if( (*i)->esPivote ){
+						eliminaPivote( (*i)->id );
+						ajustaPosicionesPivotes((*i)->posPiv);
+						elegirPivote();
+					}
+					saco.erase(saco.begin()+(*i)->pos);
+					ajustaPosicionesSaco();
+					eliminado = true;
+					return eliminado;
+				}
 			}
-			//cout << "Borrando del saco" << endl;
-			saco.erase(saco.begin()+(*i)->pos);
-			//cout << "Borrando objeto" << endl;
-			//delete (*i);
-			//cout << "Ajustando posiciones" << endl;
-			ajustaPosicionesSaco();
-			//cout <<"nuevo tamaño: " << saco.size() << endl;
-			eliminado = true;
-			return eliminado;
 		}
 	}
 
 	//BUSCAR EN CLUSTERS
-	//cout << "Buscando el objeto en los clusters:::" << clusters.size() << endl;
-	//for( k = clusters.begin(); k != clusters.end(); ++k ){
 	int l;
-	for( l = 0; l < clusters.size(); l++){
+	double dist2;
+	for( l = 0; l < clusters.size() && !eliminado; l++){
+		dist = ob->metrica(clusters[l]->centro);
 		calcMetrica++;
-		if( ob->metrica(clusters[l]->centro) <= clusters[l]->radio ){
-			//cout << "esta en el rango, extrayendo cluster" << endl;
+		if( dist <= clusters[l]->radio ){
 			bloque = extraerCluster( clusters[l]->numCluster,  clusters[l]->posArch);
 			lecturas++;
-			//for(i = bloque.begin(); i != bloque.end(); ++i ){
-			//cout << "cluster extraido" << endl;
-			clusters[l]->cercanos.clear();
-			for( int w = 0; w < bloque.size(); w++){
-				clusters[l]->cercanos.push_back(bloque[w]);
-			}
-			
-			//cout << "comienza a recorrer cluster" << endl;
-			for( j = 0; j < clusters[l]->cercanos.size(); j++){
-				//cout << "-> objeto " << j << " del cluster" << endl;
-				calcMetrica++;
-				if( ob->metrica( clusters[l]->cercanos[j] ) == 0 ){
-					//cout << "objeto encontrado en cluster " << l << endl;
-					
-					/*for(int t = 0; t < clusters[l]->cercanos[j]->valores.size(); t++)
-						cout << clusters[l]->cercanos[j]->valores[t] << " ";
-					cout << endl;
-					*/
-
-					if( j == 0 ){
-						//cout << "ES EL CENTROOOOO!!!! AAAAAHHHHH!!!" << endl;
-						
-						clusters[l]->actualizaRadioCentro();
-						//busco el mas cercano al centro para reemplazarlo
-						int nj = clusters[l]->masCercanoACentro();
-						//Objeto* centroNuevo = *(nj);
-						//cambio el centro
-						clusters[l]->centro = clusters[l]->cercanos[nj];//centroNuevo;
-						clusters[l]->cercanos[j] = clusters[l]->cercanos[nj];
-						//elimino el nuevo de la lista de cercanos
-						//clusters[l]->cercanos.erase( clusters[l]->cercanos.begin()+nj );
-						//cout << "->elemento es centro" << endl;
-						j = nj;
-						
+			for( j= 0; j < tamCluster; j++ ){
+				if( dist - bloque[j]->distanciaACentro <= 0.000001 ){
+					dist2 = ob->metrica(bloque[j]);
+					calcMetrica++;
+					if( dist2 <= 0.000001 ){
+						if( j == 0 ){ //CENTRO DE CLUSTER
+							double menor = DBL_MAX;
+							int posMen = 0;
+							Objeto* menorOb = bloque[0];
+							for( o = 0; o < tamCluster; o++){
+								if( bloque[o]->distanciaACentro < menor ){
+									menor = bloque[o]->distanciaACentro;
+									menorOb = bloque[o];
+									posMen = o;
+								}
+							}
+							bloque[0] = menorOb;
+							for( o = 0; o < tamCluster; o++){
+								bloque[o]->distanciaACentro = bloque[o]->metrica(bloque[0]);
+							}
+							j = posMen;
+							delete clusters[l]->centro;
+							clusters[l]->centro = menorOb;
+						}
+						Objeto* nuevo = cercanoA( bloque[0] );
+						nuevo->distanciaACentro = nuevo->metrica(bloque[0]);
+						if( nuevo->esPivote ){
+							eliminaPivote( nuevo->id );
+							ajustaPosicionesPivotes(nuevo->posPiv);
+							if( (saco.size()-1)%tamCluster == 1 )
+								elegirPivote();
+						}
+						delete bloque[j];
+						bloque[j] = nuevo;
+						saco.erase( saco.begin() + nuevo->pos);
+						ajustaPosicionesSaco();
+						clusters[l]->cercanos.swap(bloque);
+						reescribeCluster(clusters[l]);
+						eliminado = true;
+						for(i = clusters[l]->cercanos.begin()+1; i != clusters[l]->cercanos.end(); ++i ){
+							delete (*i);
+						}
+						clusters[l]->cercanos.resize(0);
+						clusters[l]->cercanos.shrink_to_fit();
+						return eliminado;
 					}
-					//cout << "BUSCA UNO EN LOS DE LA RAM" << endl;
-					Objeto* nuevo = cercanoA( clusters[l]->centro );
-					if( nuevo->esPivote ){
-						//cout << "Nuevo es pivote" << endl;
-						eliminaPivote( nuevo->id );
-						//AGREGAR CONDICION DE TAMAÑO DEL SACO
-						if( (saco.size()-1)%tamCluster == 1 )
-							elegirPivote();
-					}
-					//cout << "Borra el encontrado" << endl;
-					delete ( clusters[l]->cercanos[j] );
-					clusters[l]->cercanos.erase( clusters[l]->cercanos.begin() + j );
-					
-					//cout << "Agrega el nuevo " << nuevo->id << " " << nuevo->pos << endl;
-					clusters[l]->cercanos.push_back(nuevo);
-					//cout << "actualiza radio: " <<  clusters[l]->cercanos.size() << endl;
-					clusters[l]->actualizaRadio();
-					//cout << "quita nuevo del saco" << endl;
-					saco.erase( saco.begin() + nuevo->pos );
-					//cout << "ajustando posiciones" << endl;
-					ajustaPosicionesSaco();
-				
-					//cout << "reescribiendo cluster" << endl;
-					reescribeCluster(clusters[l]);
-					escrituras++;
-					eliminado = true;
-					//cout << "borrando elementos" << endl;
-					//BORRANDO ELEMENTOS
-					for( m = clusters[l]->cercanos.begin(); m != clusters[l]->cercanos.end(); ++m ){
-						delete (*m);
-					}
-					clusters[l]->cercanos.resize(0);
-					clusters[l]->cercanos.shrink_to_fit();
-					return eliminado;
 				}
 			}
-			//BORRANDO ELEMENTOS
-			for( i = bloque.begin(); i != bloque.end(); ++i ){
-				delete (*i);
-			}
-			bloque.resize(0);
-			bloque.shrink_to_fit();
 		}
-
 	}
 	return eliminado;
 
@@ -279,35 +271,44 @@ vector<Objeto*> Consultor::extraerCluster(int numCluster, long position){
 	if(tipo == 1){
 		if( (4096*cantPags)*numCluster != ftell(archivo) ) movCabezal++;
 		fseek( archivo, (4096*cantPags)*numCluster, SEEK_SET );
-		double block[512];
-		fread( block, sizeof(double), 512, archivo );
-		for( j = 0; j < (dimension*tamCluster); j+=dimension ){
+		double *block(new double[512*cantPags]);
+		fread( block, sizeof(double), 512*cantPags, archivo );
+		for( j = 0; j < ((dimension+1)*tamCluster); j+=(dimension+1) ){
 			Vector* objMem = new Vector();
 			for( k = 0; k < dimension; k++ ){
-				//cout << block[j+k] << " ";
 				objMem->poneValor( block[j+k] );
 			}
+			objMem->distanciaACentro = block[j+k];
 			//cout << endl;
 			objetos.push_back(objMem);
 		}
+		delete[] block;
 	}
 	else{
 		if(position != ftell(archivo) ) movCabezal++;
 		fseek( archivo, position, SEEK_SET );
-		char linea[dimension];
+		char *linea(new char[dimension+5]);
+		char *palabra;
+		char *numero;
+		char *end;
+		double d;
 		for(k = 0; k < tamCluster; k++){
 			fscanf( archivo, "%s", linea);
-			//printf("Extraido: %s\n", linea);
+			palabra = strtok(linea, " ");
+			numero = strtok(NULL, "\n");
 			String* objMem = new String();
-			objMem->valores = (char*)malloc(sizeof(char)*dimension);
-			for(j = 0; j < strlen(linea); j++){
-				objMem->valores[j] = linea[j];
+			objMem->valores = (new char[dimension]);
+			for(j = 0; j < strlen(palabra); j++){
+				objMem->valores[j] = palabra[j];
 			}
+			d = strtod(numero, &end);
+			objMem->distanciaACentro = d;
 			objMem->valores[strlen(linea)] = 0;
 			objMem->tamReal = strlen(linea);
-			objMem->largoMax = dimension;
+			objMem->dimension = dimension;
 			objetos.push_back(objMem);
-		}			
+		}
+		delete[] linea;			
 	}
 
 	return objetos;
@@ -357,7 +358,7 @@ void Consultor::elegirPivote(){
 void Consultor::ajustaPosicionesPivotes(int posElim){
     int k;
     for( vector<Objeto*>::iterator i = saco.begin(); i != saco.end(); ++i ){
-        (*i)->distancias->deleteValue( posElim );
+        (*i)->eliminaDistancia( posElim );
     }
     k = 0;
     for( vector<Pivote*>::iterator i = pivotes.begin(); i != pivotes.end(); ++i  ){
@@ -405,14 +406,16 @@ void Consultor::reescribeCluster(Pivote* centro){
     int ini;
     for( i = centro->cercanos.begin(); i != centro->cercanos.end(); ++i ){
     	if(tipo == 1){
-	        const char* pointer = reinterpret_cast<const char*>(&((Vector*)(*i))->valores[0]);
-	        fwrite( pointer, sizeof(double), ((Vector*)(*i))->valores.size(), archivo );
-	        count += sizeof(double) * ((Vector*)(*i))->valores.size();
+    		(*i)->poneValor((*i)->distanciaACentro);
+	        const char* pointer = reinterpret_cast<const char*>(&((Vector*)(*i))->valores);
+	        fwrite( pointer, sizeof(double), ((Vector*)(*i))->sizeValores, archivo );
+	        count += sizeof(double) * (((Vector*)(*i))->sizeValores);
     	}
     	else{
     		for(ini = 0; ini < ((String*)(*i))->tamReal; ini++ )
     			fputc(((String*)(*i))->valores[ini], archivo);
-            fputc('\n', archivo);
+    		fprintf( archivo, " %f\n", (*i)->distanciaACentro);
+            
     	}
     }
     if( tipo == 1 && count < 4096*cantPags ){

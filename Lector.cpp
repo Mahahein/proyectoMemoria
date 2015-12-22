@@ -40,20 +40,27 @@ vector<Objeto*> Lector::leerDesdeArchivo(string nombreArchivo){
 	FILE* archivo = fopen(nombreArchivo.c_str(), "r");
 	int ncon;
 	fscanf(archivo, "%d", &ncon);
+	cout << "num objs " << ncon << endl;
 	int cont = 0;
 	int cont2, i;
 	double e, r;
+	char basura[30];
 	while( cont < ncon ){
 
 		Objeto* o;
 		if( tipo == 1){
 			o = new Vector();
 			cont2 = 0;
-			while( cont2 < this->dimension ){
+			while( cont2 <= this->dimension ){
 				fscanf(archivo, "%lf", &e);
-				o->poneValor(e);
+				if(cont2 == 0){
+					o->id = e;
+				}
+				else o->poneValor(e);
 				cont2++;
 			}
+			//PARA EL HISTOGRAMA
+			//fscanf(archivo, "%s\n", basura);
 		}
 		else{
 			o = new String();
@@ -63,15 +70,15 @@ vector<Objeto*> Lector::leerDesdeArchivo(string nombreArchivo){
 			//strncpy(((String*)o)->valores, linea, sizeof(((String*)o)->valores));
 			((String*)o)->valores[strlen(linea)] = 0;
 			((String*)o)->tamReal = strlen(linea);
-			((String*)o)->largoMax = dimension;
+			((String*)o)->dimension = dimension;
 		}
 
-		fscanf(archivo, "%lf", &r);
-		o->distanciaAcumulada = r;
+		//fscanf(archivo, "%lf", &r);
+		//o->distanciaAcumulada = r;
 		consultas.push_back(o);
 		cont++;
 	}
-	cout << "lectura completa" << endl;
+	cout << "lectura completa " << consultas.size() << endl;
 	return consultas;
 }
 

@@ -94,6 +94,7 @@ void Pivote::actualizaMasLejano(){
         }
     }
     this->posMasLejano = lejano;
+    this->radio = distMayCentro;
 }
 
 int Pivote::masCercanoACentro(){

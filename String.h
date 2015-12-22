@@ -18,9 +18,11 @@ class String : public Objeto{
 		string getClass();
 		void setTamReal( int tam );
 		void poneValor(double val);
+		void eliminaValores();
 		String();
 		String(const String& orig);
-		virtual ~String();
+		String(int cantPivs, int dim);
+		~String();
 	private:
 
 };

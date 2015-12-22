@@ -25,12 +25,12 @@ class Consultor{
 		int tamCluster;
 		int totalObjs;
 		int tipo;
-		int escrituras;
-    	int lecturas;
-    	int movCabezal;
-    	int calcMetrica;
+		unsigned long escrituras;
+    	unsigned long lecturas;
+    	unsigned long movCabezal;
+    	unsigned long calcMetrica;
     	int cantPags;
-		vector<Objeto*> consultarBusquedaRango(Objeto* ob, double r);
+		long consultarBusquedaRango(Objeto* ob, double r);
 		bool eliminarObjeto(Objeto* ob);
 		vector<double> distanciaACentros(Objeto* ob);
 		vector<double> distanciaAPivotes(Objeto* ob);

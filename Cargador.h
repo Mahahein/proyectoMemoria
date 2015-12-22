@@ -26,10 +26,10 @@ public:
     int tamCluster;
     int totalObjs;
     int tipo;
-    int escrituras;
-    int lecturas;
-    int movCabezal;
-    int calcMetrica;
+    unsigned long escrituras;
+    unsigned long lecturas;
+    unsigned long movCabezal;
+    unsigned long calcMetrica;
     int cantPags;
     Cargador();
     Cargador(int pages);
@@ -38,18 +38,13 @@ public:
     int leer(string archivo, int modo);
     void distanciasAPivotes(Objeto* ob);
     void distanciasACentros(Objeto* ob);
-    double distanciaPivoteNuevo(Objeto* ob, Pivote* piv);
     void obtieneCercanos(Pivote* p);
-    void sacaPivoteDelSaco(int id);
     void sacaPivoteDeProvisorios(int id);
     void elegirPivoteProvisorio();
     void pasarAMemoria(int nCluster, int* nPivotes);
     void ajustaPosicionesPivotes(int posElim);
     void ajustaPosiciones();
-    bool estaEnCercanos(int id, Pivote* piv);
-    //void escribeOb(Objeto* ob);
     void escribeCluster(Pivote* centro);
-
 private:
 
 };

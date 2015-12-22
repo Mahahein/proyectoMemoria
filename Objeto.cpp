@@ -19,7 +19,10 @@ Objeto::Objeto() {
     comparando = 0;
     pos = 0;
     posPiv = -1;
-    distancias = new MSvector();
+    //distancias = new MSvector();
+    sizeDistancias = 0;
+    capDistancias = 0;
+    distancias = NULL;
     //distancias.reserve(100);
 }
 
@@ -29,21 +32,25 @@ Objeto::Objeto(const Objeto& orig) {
     comparando = 0;
     pos = 0;
     posPiv = -1;
-    distancias = new MSvector();
+    distancias = NULL;
     //distancias.resize(0);
 }
-Objeto::Objeto(int dist){
-    distanciaAcumulada = dist;
+Objeto::Objeto(int cantPivs, int dim){
+    distanciaAcumulada = 0;
     esPivote = false;
     comparando = 0;
     pos = 0;
     posPiv = -1;
-    distancias = new MSvector();
+    distancias = (new double[cantPivs]);
+    sizeDistancias = cantPivs;
+    capDistancias = cantPivs;
+    dimension = dim;
     //distancias.resize(0);
 }
 
 Objeto::~Objeto() {
-    delete distancias;
+    if(distancias)
+        delete[] distancias;
 }
 
 void Objeto::poneValor( double val){
@@ -51,11 +58,45 @@ void Objeto::poneValor( double val){
 }
 
 void Objeto::poneDistancia(double d){
-    distancias->putValue(d);
+    //distancias->putValue(d);
+    if(sizeDistancias == 0){
+        sizeDistancias = 1;
+        capDistancias = 1;
+        distancias = (new double[capDistancias]);
+        distancias[0] = d;
+        return;
+    }
+    if(sizeDistancias < capDistancias){
+        distancias[sizeDistancias] = d;
+    }
+    else{
+        capDistancias = sizeDistancias*2;
+        double *dist = (new double[capDistancias]);
+
+        for(int i = 0; i < sizeDistancias; i++){
+            dist[i] = distancias[i];
+        }
+        delete[] distancias;
+        distancias = dist;
+        distancias[sizeDistancias] = d;
+    }
+    sizeDistancias+=1;
+    return;
 }
 
 void Objeto::aumentaAcumulado(double k){
     distanciaAcumulada += k;
+}
+
+void Objeto::eliminaDistancia(int pos){
+    if(pos > sizeDistancias) return;
+    else{
+        for(int i = pos; i < sizeDistancias-1; i++){
+            distancias[i] = distancias[i+1];
+        }
+        distancias[sizeDistancias] = -1;
+        sizeDistancias-=1;
+    }
 }
 
 Objeto Objeto::newObjeto(){
@@ -63,28 +104,11 @@ Objeto Objeto::newObjeto(){
 }
 
 double Objeto::metrica(Objeto* otro){
-    /*double dist = 0;
-    vector<double>::iterator i = this->valores.begin();
-    vector<double>::iterator j = ob->valores.begin();
-    int m, n;
-    m = 0;
-    n = 0;
-    for( ; i != this->valores.end() && j != ob->valores.end() ; ++i, ++j ){
-        dist += pow( *i - *j, 2 );
-    }
-    //for( ; m < this->valores.size() && n < ob->valores.size(); m++, n++)
-    dist = sqrt(dist);
-    return dist;*/
 }
-
-/*double Objeto::metrica( Vector* otro ){
-
-}
-
-double Objeto::metrica( String* otro ){
-    
-}*/
 
 string Objeto::getClass(){
     return "";
+}
+
+void Objeto::eliminaValores(){
 }
