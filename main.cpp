@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
     vector<Objeto*> objetos;
     bool respuestaEliminacion;
     string nombreArchivo;
-    int opc = 1;
+    int opc = 2;
     //double radios[4] = {255.0, 500.0, 760.0, 1010.0};
 
     while( opc != 0 ){
@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
         if( opc == 1){
             int opc1 = 1;
             if( opc1 == 1 ){
-                nombreArchivo = "bdNoraFixed.txt";
+                nombreArchivo = "04dim.norm";
                 s = new Cargador();
                 cout << "porcentaje,lecturas,escrituras,calcMetrica,movCabezal" << endl;
                 tipo = s->leer( nombreArchivo, 1 );
@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
         }
         else if( opc == 2 ){
             //Consultor* c = new Consultor();
-            nombreArchivo = "bdNoraFixed_90p.txt";
+            nombreArchivo = "histo112_112682_a_90p.txt";
             s = new Cargador();
             cout << "porcentaje,lecturas,escrituras,calcMetrica,movCabezal" << endl;
             tipo = s->leer( nombreArchivo, 1 );
@@ -132,9 +132,9 @@ int main(int argc, char** argv) {
                 archivoSalida.close();
             }
             else if( opc2 == 2 ){
-                entrada = "bdNoraFixed_10p.txt";
+                entrada = "histo112_112682_a_10p.txt";
                 //entrada = "vectors-20_10p.dat";
-                salida = "salidaExperimentoBusquedaENGPiv.txt";
+                salida = "salidaExperimentoBusquedaV112.txt";
                 archivoSalida.open( salida.c_str(), ios_base::out );
                 archivoSalida << "radio,lecturas,escrituras,calcMetrica,movCabezal,tiempo" << endl;
                 objetos = l->leerDesdeArchivo( entrada );
@@ -143,9 +143,9 @@ int main(int argc, char** argv) {
                 double totTim;
                 long k;
                 time_t ini, fin;
-                //double radios[3] = {0.051768, 0.082514, 0.131163};
+                double radios[3] = {0.051768, 0.082514, 0.131163};
                 //double radios[3] = {0.12, 0.285, 0.53};
-                double radios[4] = {255.0, 500.0, 760.0, 1010.0};//, 3.0, 4.0};
+                //double radios[4] = {0.12, 0.285, 0.53};//, 3.0, 4.0};
                 for( int j = 0; j < 3; j++){
                     k=0;
                     totLec = 0;

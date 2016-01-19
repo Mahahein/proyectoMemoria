@@ -104,7 +104,7 @@ int Cargador::leer(string archivo, int modo){
         file.open(salida.c_str(), ios::out | ios::binary);
         tamCluster = (4096*cantPags)/(sizeof(double)*(dimension+1));
         if(dimension > 64){
-            while (tamCluster < 64 ){
+            while (tamCluster < 32 ){
                 cantPags++;
                 tamCluster = (4096*cantPags)/(sizeof(double)*(dimension+1));
             }
@@ -114,7 +114,7 @@ int Cargador::leer(string archivo, int modo){
         file.open(salida.c_str(), ios::out );
         tamCluster = (4096*cantPags)/(sizeof(char)*dimension);
     }
-    //cout << tamCluster << endl;
+    cout << tamCluster << endl;
 
     //LECTURA DE LOS DATOS
     for( string linea; getline(entrada, linea);){
@@ -169,12 +169,13 @@ int Cargador::leer(string archivo, int modo){
         //Si se llenó la bolsa/buffer
         //se procede a pasar un cluster a memoria secundaria
         if( bolsa.size() == N ){
+            //cout << "pasando a memoria" << endl;
             pasarAMemoria(cluster, &nPivotes);
+            //cout << "pasó a memoria" << endl;
             cluster++;
         }
         //salida para marcar el porcentaje de avance (cada 10%)
         if( ((double)objs)/totalObjs >= porcentaje){
-            cout << endl;
             cout << porcentaje*100 << "," << lecturas << "," << escrituras << "," << calcMetrica << "," << movCabezal << endl;
             porcentaje+=0.1;
         }
@@ -203,7 +204,7 @@ void Cargador::distanciasAPivotes(Objeto* ob){
 //Función que obtiene los "tamCluster"-1 vecinos más cercanos de un pivote
 void Cargador::obtieneCercanos(Pivote* p){
     p->cercanos.clear();
-    p->cercanos.resize(0);
+    //p->cercanos.resize(0);
     int k = 0;
     for( vector<Objeto*>::iterator i = bolsa.begin(); i != bolsa.end(); ++i){
         if( (*i)->id != p->centro->id ){
@@ -283,12 +284,12 @@ void Cargador::pasarAMemoria(int nCluster, int* nPivotes){
     pivotesProvisorios[minPi]->numCluster = nCluster;
     //###### 1 - 1.1 - 2 ######
     
-    //########### 3 ########### 
+    //########### 3 ###########
     if(tipo == 1){
         pivotesProvisorios[minPi]->posArch = file.tellp();
         pivotesProvisorios[minPi]->centro->poneValor(0.0);
-        const char* pointer = reinterpret_cast<const char*>(&((Vector*)pivotesProvisorios[minPi]->centro)->valores[0]);
-        file.write( pointer, sizeof(double)*(dimension+1) );
+        const char* pointer = reinterpret_cast<const char*>(&((Vector*)pivotesProvisorios[minPi]->centro)->valores[0]);   
+        file.write( pointer, sizeof(double)*(((Vector*)pivotesProvisorios[minPi]->centro))->sizeValores );
     }
     else{
         pivotesProvisorios[minPi]->posArch = file.tellp();
@@ -298,7 +299,7 @@ void Cargador::pasarAMemoria(int nCluster, int* nPivotes){
     }
     //########### 3 ########### 
 
-    //########### 4 ########### 
+    //########### 4 ###########
     escribeCluster(pivotesProvisorios[minPi]);
     //########### 4 ########### 
 
@@ -309,11 +310,13 @@ void Cargador::pasarAMemoria(int nCluster, int* nPivotes){
     //######### 5 - 6 #########
     for(k=0; k < pivotesProvisorios[minPi]->cercanos.size(); k++){
         if( pivotesProvisorios[minPi]->cercanos[k]->esPivote ){
-            pivotes.push_back(pivotesProvisorios[minPi]->cercanos[k]->posPiv);
+            delete pivotesProvisorios[pivotesProvisorios[minPi]->cercanos[k]->posPiv];
+            pivotesProvisorios[pivotesProvisorios[minPi]->cercanos[k]->posPiv] = NULL;
             pivotesLlevados++;
         }
-        bolsa[pivotesProvisorios[minPi]->cercanos[k]->pos] = NULL;
         delete pivotesProvisorios[minPi]->cercanos[k];
+        bolsa[pivotesProvisorios[minPi]->cercanos[k]->pos] = NULL;
+        
     }
     //######### 5 - 6 #########
 
@@ -330,21 +333,28 @@ void Cargador::pasarAMemoria(int nCluster, int* nPivotes){
     //########### 7 ###########
 
     //########### 8 ###########
-    for(k=0; k < pivotesLlevados; k++){
-        pivotesProvisorios.erase(pivotesProvisorios.begin() + pivotes[k]);
-        ajustaPosicionesPivotes(pivotes[k]);
-        elegirPivoteProvisorio();
+    for( k = 0; k < pivotesProvisorios.size();){
+        if(pivotesProvisorios[k] != NULL){
+            pivotesProvisorios[k]->pos = k;
+            pivotesProvisorios[k]->centro->posPiv = k;
+            k++;
+        }
+        else{
+            pivotesProvisorios.erase(pivotesProvisorios.begin() + k);
+            ajustaPosicionesPivotes(k);
+            elegirPivoteProvisorio();
+        }
     }
     //########### 8 ###########
 
-    //########### 9 ###########    
+    //########### 9 ###########
     bolsa.erase(bolsa.begin()+pivotesProvisorios[minPi]->centro->pos);
     ajustaPosiciones();
     pivotesEnMemoria.push_back( pivotesProvisorios[minPi] );
     vector<Objeto*>().swap(pivotesProvisorios[minPi]->cercanos);
-    pivotesProvisorios[minPi]->cercanos.resize(0);
-    pivotesProvisorios[minPi]->cercanos.shrink_to_fit();
-    sacaPivoteDeProvisorios(pivotesProvisorios[minPi]->centro->id);
+    int posi = pivotesProvisorios[minPi]->pos;
+    pivotesProvisorios.erase(pivotesProvisorios.begin() + pivotesProvisorios[minPi]->pos);
+    ajustaPosicionesPivotes(posi);
     //########### 9 ###########
 }
 
@@ -370,9 +380,11 @@ void Cargador::ajustaPosicionesPivotes(int posElim){
     }
     k = 0;
     for( vector<Pivote*>::iterator i = pivotesProvisorios.begin(); i != pivotesProvisorios.end(); ++i  ){
-        (*i)->pos = k;
-        (*i)->centro->posPiv = k;
-        k++;
+        if( (*i) != NULL){
+            (*i)->pos = k;
+            (*i)->centro->posPiv = k;
+            k++;
+        }
     }
 }
 
@@ -398,7 +410,7 @@ void Cargador::escribeCluster(Pivote* centro){
             (*i)->poneValor((*i)->distancias[centro->pos]);
             const char* pointer = reinterpret_cast<const char*>(&((Vector*)(*i))->valores[0]);
             file.write( pointer, sizeof(double)*((Vector*)(*i))->sizeValores);
-            count += sizeof(double) * (((Vector*)(*i))->sizeValores+1);
+            count += sizeof(double) * (((Vector*)(*i))->sizeValores);
         }
         else{
             for(ini = 0; ini < ((String*)(*i))->tamReal; ini++ ){

@@ -36,6 +36,7 @@ Pivote::Pivote(Objeto* c){
     this->centro = c;
     numCluster = -1;
     posArch = 0;
+    posMasLejano = -1;
 }
 
 bool Pivote::operator <(const Pivote& piv) const{

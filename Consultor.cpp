@@ -51,9 +51,7 @@ long Consultor::consultarBusquedaRango(Objeto* ob, double r){
 	double dist;
 	bool esta;
 	long respuesta = 0;
-	//int contTot = 0;
 	//BUSCANDO EN LOS CLUSTER
-	//cout << "Buscando clusters con posibles vecinos" << endl;
 	double *distanciaAClusters(new double[clusters.size()]);
 	k=0;
 	for( l = clusters.begin(); l != clusters.end(); ++l ){
@@ -65,17 +63,12 @@ long Consultor::consultarBusquedaRango(Objeto* ob, double r){
 			k++;
 		}
 	}
-
-	//cout << "sacando los posibles vecinos de los clusters" << endl;
 	vector<Objeto*> objetosBloque;
 	k=0;
 	if(!candidatos.empty()){
-
 		for( l = candidatos.begin(); l != candidatos.end(); ++l ){
-
 			objetosBloque = extraerCluster( (*l)->numCluster, (*l)->posArch );
 			lecturas++;
-
 			for( m = objetosBloque.begin(); m != objetosBloque.end(); ++m ){
 				if( fabs( distanciaAClusters[k] - (*m)->distanciaACentro ) <= r ){
 					calcMetrica++;
@@ -83,7 +76,6 @@ long Consultor::consultarBusquedaRango(Objeto* ob, double r){
 						respuesta += 1;
 					}
 				}
-				/**/
 			}
 			for( m = objetosBloque.begin(); m != objetosBloque.end(); ++m ){
 				delete *m;
@@ -99,8 +91,8 @@ long Consultor::consultarBusquedaRango(Objeto* ob, double r){
 	vector<Pivote*>().swap(candidatos);
 	candidatos.resize(0);
 	candidatos.shrink_to_fit();
-	//cout << "buscando en los pivotes en ram, calculando distancias a los pivotes" << endl;
 
+	//BUSCANDO EN EL SACO/BUFFER
 
 	double *distPivs(new double[pivotes.size()]);
 	i=0;
@@ -109,9 +101,7 @@ long Consultor::consultarBusquedaRango(Objeto* ob, double r){
 		distPivs[i] = ob->metrica((*l)->centro);
 		i++;
 	}
-
-	//ELIGIENDO POR DESIGUALDAD TRIANGULAR
-	//cout << "buscando por distancia triangular y luego directo a los posibles vecinos" << endl;
+	//DESCARTANDO POR DESIGUALDAD TRIANGULAR
 	bool sobrevive;
 	for( m = saco.begin(); m != saco.end(); ++m ){
 		sobrevive = true;
@@ -128,9 +118,7 @@ long Consultor::consultarBusquedaRango(Objeto* ob, double r){
 			}
 		}
 	}
-	delete[] distPivs;
-	//cout << "total encontrados " << cercanos.size() << endl;
-	
+	delete[] distPivs;	
 	return respuesta;
 
 };
@@ -138,11 +126,9 @@ long Consultor::consultarBusquedaRango(Objeto* ob, double r){
 bool Consultor::eliminarObjeto(Objeto* ob){
 	bool eliminado = false;
 	bool igual;
-
 	vector<Pivote*>::iterator k;
 	vector<Objeto*>::iterator i;
 	vector<Objeto*>::iterator m;
-
 	vector<Objeto*> bloque;
 	vector<Pivote*> candidatos;
 	bloque.resize(0);
@@ -158,7 +144,6 @@ bool Consultor::eliminarObjeto(Objeto* ob){
 		distPivs[j] = ob->metrica((*k)->centro);
 		j++;
 	}
-
 	for( i = saco.begin(); i != saco.end() && !eliminado; ++i ){
 		for(j = 0; j < (*m)->sizeDistancias; j++){
 			if( fabs( distPivs[j] - (*i)->distancias[j] ) < 0.0001 ){
@@ -177,7 +162,6 @@ bool Consultor::eliminarObjeto(Objeto* ob){
 			}
 		}
 	}
-
 	//BUSCAR EN CLUSTERS
 	int l;
 	double dist2;
@@ -401,7 +385,6 @@ void Consultor::reescribeCluster(Pivote* centro){
 		if( centro->posArch != ftell(archivo) ) movCabezal++;
 		fseek( archivo, centro->posArch, SEEK_SET );
 	}
-    //cout << "escribiendo" << endl;
     int count = 0;
     int ini;
     for( i = centro->cercanos.begin(); i != centro->cercanos.end(); ++i ){
